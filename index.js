@@ -9,6 +9,9 @@ io.on('connection', function(socket){
   socket.on("playerUpdate", function (player) {
     socket.broadcast.emit('playerUpdate', {id: socket.id, player: player});
   });
+  socket.on("fireBullet", function (bulObj) {
+    socket.broadcast.emit('fireBullet', bulObj);
+  });
 });
 
 http.listen(process.env.PORT || 3000, function(){

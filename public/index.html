@@ -20,6 +20,7 @@ ASTEROIDS
 	var keys = [];
 	var asteroids = [];
   var remotePlayers = [];
+  var enemyBullets = [];
 	var keyIsPressed = false;
   var f = createFont("monospace", 32);
   var socket = io();
@@ -173,15 +174,17 @@ ASTEROIDS
 
 	        var vvx = copy.x;
 	        var vvy = copy.y;
-
-	        bullets.push({
+          var bulObj = {
 	            x: p.loc.x + sin(p.rot)*18,
 	            y: p.loc.y- (cos(p.rot)*24),
 	            vx: vvx,
 	            vy: vvy,
-	            r: 1.5,
-	            life: 100
-	        });
+	            r: 3,
+	            life: 100,
+              fillColor: p.fillColor
+	        };
+	        bullets.push(bulObj);
+          socket.emit("fireBullet", bulObj);
 	    }
 	};
 	var drawAsteroids = function(){
@@ -211,18 +214,18 @@ ASTEROIDS
 		 	}
 		}
 	};
-    var drawBullets = function(){
-        for (var i = 0; i < bullets.length; i++){
+    var drawBullets = function(bulletList){
+        for (var i = 0; i < bulletList.length; i++){
 	        noStroke();
-            var b = bullets[i];
-	        fill(255 - b.life*3, 255 - b.life*3, 255 - b.life*3);
-	        ellipse(bullets[i].x, bullets[i].y, b.r*2, b.r*2);
+          var b = bulletList[i];
+	        fill(b.fillColor);
+	        ellipse(bulletList[i].x, bulletList[i].y, b.r*2, b.r*2);
 	    }
     };
-    var handleCollisions = function(){
-        for (var i = 0; i < bullets.length; i++){
+    var handleCollisions = function(bulletList){
+        for (var i = 0; i < bulletList.length; i++){
 	        noStroke();
-            var b = bullets[i];
+            var b = bulletList[i];
 	        b.x += b.vx;
 	        b.y += b.vy;
 	        if (b.x < -b.r){
@@ -239,20 +242,20 @@ ASTEROIDS
 	        }
             b.life--;
             if (b.life < 0){
-                bullets.splice(i, 1);
+                bulletList.splice(i, 1);
             }
-            for (var n = 0; n < asteroids.length; n++){
-                var a = asteroids[n];
-                var ra = a.stage * 20;
-                if (b.x > a.x-ra && b.x < a.x + ra && b.y > a.y - ra && b.y < a.y + ra){
-                    asteroids.push(new Asteroid(a.x, a.y, random(-5, 5), random(-5, 5), a.stage-1));
-                    a.vx = random(-5, 5);
-                    a.vy = random(-5, 5);
-                    a.stage--;
-                    bullets.splice(i, 1);
-                }
-
-            }
+            // for (var n = 0; n < asteroids.length; n++){
+            //     var a = asteroids[n];
+            //     var ra = a.stage * 20;
+            //     if (b.x > a.x-ra && b.x < a.x + ra && b.y > a.y - ra && b.y < a.y + ra){
+            //         asteroids.push(new Asteroid(a.x, a.y, random(-5, 5), random(-5, 5), a.stage-1));
+            //         a.vx = random(-5, 5);
+            //         a.vy = random(-5, 5);
+            //         a.stage--;
+            //         bullets.splice(i, 1);
+            //     }
+            //
+            // }
 	    }
     };
     var init = function(){
@@ -276,8 +279,10 @@ ASTEROIDS
     p.userInput();
     drawAsteroids();
     updateAsteroids();
-    drawBullets();
-    handleCollisions();
+    drawBullets(bullets);
+    handleCollisions(bullets);
+    drawBullets(enemyBullets);
+    handleCollisions(enemyBullets);
     for (let n = 0; n < remotePlayers.length; n++){
       drawPlayer(remotePlayers[n].player);
     }
@@ -302,6 +307,9 @@ ASTEROIDS
       remotePlayers.push(msgObj);
     })
 
+    socket.on("fireBullet", function (bulObj) {
+      enemyBullets.push(bulObj);
+    })
   </script>
   <canvas id = "mycanvas">Your browser doesn't support html5 canvas</canvas>
 </body>
