@@ -16,7 +16,9 @@ io.on('connection', function(socket){
     socket.broadcast.emit('fireBullet', bulObj);
   });
   socket.on("bulletHit", function (bulObj) {
-    socketPool[bulObj.id].emit("bulletSuccess", bulObj);
+    if (socketPool.hasOwnProperty("" + bulObj.id)){
+      socketPool[bulObj.id].emit("bulletSuccess", bulObj);
+    }
   })
 
   socket.on("disconnect", function () {
