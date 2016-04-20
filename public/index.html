@@ -1,18 +1,24 @@
 <html>
 <head>
+  <link rel="stylesheet" href="https://bootswatch.com/spacelab/bootstrap.min.css">
 <title>
 ASTEROIDS
 </title>
 </head>
 <body>
-
+  <div class="container">
+    <div class="jumbotron">
+      <h1>Score</h1>
+      <p id="displayScore" class="text text-centered">0</p>
+    </div>
+  </div>
     <script src="/scripts/processingLibrary.js"></script>
     <script src="/scripts/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script type="text/processing" data-processing-target="mycanvas">
 
-  var width = screen.availWidth - (0.02 * screen.availWidth);
-	var height = screen.availHeight - (0.12 * screen.availHeight);
+  var width = window.innerWidth*0.90;//screen.availWidth - (0.07 * screen.availWidth);
+	var height = screen.availHeight - (0.22 * screen.availHeight);
 	void setup(){
 		size(width , height);
 	}
@@ -24,6 +30,7 @@ ASTEROIDS
 	var keyIsPressed = false;
   var f = createFont("monospace", 32);
   var socket = io();
+  var localBulletID = 0;
 
   socket.emit("test", "Hello there");
 
@@ -74,6 +81,8 @@ ASTEROIDS
 	    this.r = 44;
       this.fillColor = getRandomColor();
       this.engineOn = false;
+
+      this.gameScore = 0;
 
 	    this.update = function(){
 	        this.rot += this.rotA;
@@ -181,7 +190,8 @@ ASTEROIDS
 	            vy: vvy,
 	            r: 3,
 	            life: 100,
-              fillColor: p.fillColor
+              fillColor: p.fillColor,
+              bulletID: localBulletID++
 	        };
 	        bullets.push(bulObj);
           socket.emit("fireBullet", bulObj);
@@ -258,6 +268,17 @@ ASTEROIDS
             // }
 	    }
     };
+
+    function isHit(bulletList){
+      for (var n = 0; n < bulletList.length; n++){
+        var curB = bulletList[n];
+        if (dist(p.loc.x, p.loc.y, curB.x, curB.y) < 25){
+          socket.emit("bulletHit", curB);
+          bulletList.splice(n, 1);
+        }
+      }
+    }
+
     var init = function(){
       asteroids = [];
       bullets = [];
@@ -270,6 +291,7 @@ ASTEROIDS
         asteroids = [];
     };
     init();
+
 	void draw () {
 		frameRate(30);
     background(255);
@@ -286,6 +308,8 @@ ASTEROIDS
     for (let n = 0; n < remotePlayers.length; n++){
       drawPlayer(remotePlayers[n].player);
     }
+    isHit(enemyBullets);
+
 	};
 
   function getRandomColor() {
@@ -309,8 +333,29 @@ ASTEROIDS
 
     socket.on("fireBullet", function (bulObj) {
       enemyBullets.push(bulObj);
+    });
+
+    socket.on("bulletSuccess", function (bulObj) {
+      for (var n = 0; n < bullets.length; n++){
+        if (bullets[n].bulletID === bulObj.bulletID){
+          bullets.splice(n, 1);
+          break;
+        }
+      }
+      p.gameScore++;
+      document.getElementById("displayScore").innerHTML = p.gameScore;
+    });
+
+    socket.on("playerLeft", function (playerID) {
+      console.log("SEARCHING FOR PLAYER...");
+      for (let n = 0; n < remotePlayers.length; n++){
+        if (remotePlayers[n].id === playerID.id){
+          console.log("REMOVING PLAYER...");
+          remotePlayers.splice(n, 1);
+        }
+      }
     })
   </script>
-  <canvas id = "mycanvas">Your browser doesn't support html5 canvas</canvas>
+  <canvas id = "mycanvas" style="border:1px solid #000000;">Your browser doesn't support html5 canvas</canvas>
 </body>
 </html>
