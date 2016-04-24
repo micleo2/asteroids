@@ -1,0 +1,31 @@
+{
+  "engines": {
+    "node": "4.4.2"
+  },
+  "name": "asteroids",
+  "version": "1.0.0",
+  "description": "Multiplayer asteroids game",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.13.4",
+    "socket.io": "^1.4.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micleo2/asteroids.git"
+  },
+  "keywords": [
+    "asteroids"
+  ],
+  "author": "Michael Leon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/micleo2/asteroids/issues"
+  },
+  "homepage": "https://github.com/micleo2/asteroids#readme"
+}
