@@ -64,6 +64,7 @@ var Player = function(){
     this.engineOn = false;
 
     this.gameScore = 0;
+    this.bulletsTaken = 0;
 
     this.update = function(){
         this.rot += this.rotA;
@@ -193,18 +194,18 @@ var drawAsteroids = function(){
     cur.x += cur.vx;
     cur.y += cur.vy;
     var ra = cur.stage * 20;
-    if (cur.x < -ra){
-      cur.x = width + ra;
-    }
-    if (cur.x > width + ra){
-      cur.x = -ra;
-    }
-    if (cur.y < -ra){
-      cur.y = height + ra;
-    }
-    if (cur.y > height + ra){
-      cur.y = -ra;
-    }
+    // if (cur.x < -ra){
+    //   cur.x = width + ra;
+    // }
+    // if (cur.x > width + ra){
+    //   cur.x = -ra;
+    // }
+    // if (cur.y < -ra){
+    //   cur.y = height + ra;
+    // }
+    // if (cur.y > height + ra){
+    //   cur.y = -ra;
+    // }
   }
 };
   var drawBullets = function(bulletList){
@@ -212,6 +213,7 @@ var drawAsteroids = function(){
         noStroke();
         var b = bulletList[i];
         fill(b.fillColor);
+        stroke(0, 0, 0);
         ellipse(bulletList[i].x, bulletList[i].y, b.r*2, b.r*2);
     }
   };
@@ -221,18 +223,18 @@ var drawAsteroids = function(){
           var b = bulletList[i];
         b.x += b.vx;
         b.y += b.vy;
-        if (b.x < -b.r){
-            b.x = width + b.r;
-        }
-        if (b.x > width + b.r){
-            b.x = -b.r;
-        }
-        if (b.y < -b.r){
-            b.y = height + b.r;
-        }
-        if (b.y > height + b.r){
-            b.y = -b.r;
-        }
+        // if (b.x < -b.r){
+        //     b.x = width + b.r;
+        // }
+        // if (b.x > width + b.r){
+        //     b.x = -b.r;
+        // }
+        // if (b.y < -b.r){
+        //     b.y = height + b.r;
+        // }
+        // if (b.y > height + b.r){
+        //     b.y = -b.r;
+        // }
           b.life--;
           if (b.life < 0){
               bulletList.splice(i, 1);
@@ -258,6 +260,7 @@ var drawAsteroids = function(){
       if (dist(p.loc.x, p.loc.y, curB.x, curB.y) < 25){
         socket.emit("bulletHit", curB);
         bulletList.splice(n, 1);
+        p.bulletsTaken++;
       }
     }
   }
@@ -292,12 +295,13 @@ void draw () {
     drawPlayer(remotePlayers[n].player);
     fill(remotePlayers[n].player.fillColor);
     textAlign(LEFT, CENTER);
-    text("Enemy score " + remotePlayers[n].player.gameScore, 20, (n*30) + 40);
+    text("Enemy score " + remotePlayers[n].player.gameScore + "; bullets taken: " + remotePlayers[n].player.bulletsTaken, 20, (n*30) + 40);
   }
   isHit(enemyBullets);
   textAlign(CENTER, CENTER);
   fill(0);
   text("Your score: " + p.gameScore, width/2, 50);
+  text("Bullets taken: " + p.bulletsTaken, width/2, 80);
 };
 
 function getRandomColor() {

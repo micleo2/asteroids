@@ -3,6 +3,7 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var socketPool = {};
+var port = 3000;
 
 app.use(express.static(__dirname + '/public'));
 
@@ -26,7 +27,12 @@ io.on('connection', function(socket){
     delete socketPool[socket.id];
   });
 });
-
-http.listen(process.env.PORT || 3000, function(){
-  console.log('listening on *:3000');
-});
+if (process.env.IP){
+  http.listen(process.env.PORT || port, process.env.IP, function(){
+    console.log('listening on *:' + (process.env.PORT || port));
+  });
+}else{
+  http.listen(process.env.PORT || port, function(){
+    console.log('listening on *:' + (process.env.PORT || port));
+  });
+}
