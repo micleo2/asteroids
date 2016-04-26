@@ -26,6 +26,10 @@ io.on('connection', function(socket){
     io.emit("playerLeft", {id: socket.id});
     delete socketPool[socket.id];
   });
+
+  socket.on("chat message", function (content) {
+    io.emit('chat message', content);
+  });
 });
 if (process.env.IP){
   http.listen(process.env.PORT || port, process.env.IP, function(){

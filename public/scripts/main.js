@@ -1,3 +1,15 @@
+var socket = io();
+/*CHAT APP CODE; BEGIN*/
+$('form').submit(function(){
+  socket.emit('chat message', $('#m').val());
+  $('#m').val('');
+  return false;
+});
+socket.on('chat message', function(msg){
+  $('#messages').prepend($('<li>').text(msg));
+});
+/*CHAT APP CODE; END*/
+
 var width = document.body.clientWidth;
 var height = document.body.clientHeight;
 void setup(){
@@ -10,7 +22,6 @@ var remotePlayers = [];
 var enemyBullets = [];
 var keyIsPressed = false;
 var f = createFont("monospace", 32);
-var socket = io();
 var localBulletID = 0;
 
 socket.emit("test", "Hello there");
