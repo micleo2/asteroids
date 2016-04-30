@@ -22,9 +22,47 @@ var remotePlayers = [];
 var enemyBullets = [];
 var keyIsPressed = false;
 var f = createFont("monospace", 32);
-var localBulletID = 0;
+var localBulletID = 0, frameCount = 0;
+var starField = [];
+function Star(x, y, d){
+  this.x = x;
+  this.y = y;
+  this.density = d;
+  this.fillNum = getRandomInt(100, 255);
 
-socket.emit("test", "Hello there");
+  this.draw = function(){
+    noStroke();
+    if (frameCount % 30 == 0){
+      this.fillNum = getRandomInt(50, 255);
+    }
+    fill(this.fillNum);
+    ellipse(this.x, this.y, this.density, this.density);
+  }
+}
+
+for (let x = 0; x < width/30; x++){
+  starField.push(new Star(getRandomInt(0, width), getRandomInt(0, height), random() * 5 + 1));
+}
+
+function drawStars(){
+  for (let n = 0; n < starField.length; n++){
+    starField[n].draw();
+    starField[n].x -= (p.velocity.x * starField[n].density) / 5;
+    starField[n].y -= (p.velocity.y * starField[n].density) / 5;
+
+    if (starField[n].x < -10){
+      starField[n].x = width + 10;
+    }else if (starField[n].x > width + 10){
+      starField[n].x = -10;
+    }
+
+    if (starField[n].y < -10){
+      starField[n].y = height + 10;
+    }else if (starField[n].y > height + 10){
+      starField[n].y = -10;
+    }
+  }
+}
 
 var limit = function(v, lim){
     if (v.x > lim){
@@ -217,7 +255,6 @@ void keyReleased (){
 
   var drawBullets = function(bulletList){
       for (var i = 0; i < bulletList.length; i++){
-        noStroke();
         var b = bulletList[i];
         fill(b.fillColor);
         stroke(0, 0, 0);
@@ -227,10 +264,10 @@ void keyReleased (){
 
   var drawLocalBullets = function(bulletList){
       for (var i = 0; i < bulletList.length; i++){
-        noStroke();
         var b = bulletList[i];
         fill(b.fillColor);
-        stroke(0, 0, 0);
+        strokeWeight(0.3);
+        stroke(255);
         ellipse(bulletList[i].x - p.loc.x + width/2, bulletList[i].y - p.loc.y + height/2, b.r*2, b.r*2);
     }
   };
@@ -299,17 +336,19 @@ void keyReleased (){
 var xSize = width / 4;
 var ySize = height / 4;
 void draw () {
+  frameCount++;
   frameRate(30);
   background(0);
   /*DRAW BACKGROUND; BEGIN*/
-  for (let x = -(p.loc.x % xSize); x < width; x += xSize){
+  /*for (let x = -(p.loc.x % xSize); x < width; x += xSize){
     stroke(255);
     line(x, 0, x, height);
   }
   for (let y = -(p.loc.y % ySize); y < height; y += ySize){
     stroke(255);
     line(0, y, width, y);
-  }
+  }*/
+  drawStars();
   /*DRAW BACKGROUND; END*/
   p.update();
   drawLocalPlayer(p);
