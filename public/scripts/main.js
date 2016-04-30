@@ -44,7 +44,29 @@ function drawPlayer(plyr){
   strokeWeight(0);
   fill(plyr.fillColor);
   pushMatrix();
-  translate(plyr.loc.x, plyr.loc.y);
+  translate(plyr.loc.x - p.loc.x + width/2, plyr.loc.y - p.loc.y + height/2);
+  var sizee = 10;
+  var yOff = 21;
+  rotate(plyr.rot);
+  triangle(0, -plyr.r+yOff, sizee, -sizee+yOff, -sizee, -sizee+yOff);
+
+  if (plyr.engineOn){
+      var yoff = 4;
+      if (random() > 0.25){
+        fill(225, 69, 0);
+          noStroke();
+            triangle(0, plyr.r/2+yoff, 5, 10+yoff, -5, 10+yoff);
+      }
+  }
+  popMatrix();
+}
+
+function drawLocalPlayer(plyr){
+  stroke(0, 0, 0);
+  strokeWeight(0);
+  fill(plyr.fillColor);
+  pushMatrix();
+  translate(width/2, height/2);
   var sizee = 10;
   var yOff = 21;
   rotate(plyr.rot);
@@ -192,33 +214,7 @@ void keyReleased (){
         socket.emit("fireBullet", bulObj);
     }
 };
-var drawAsteroids = function(){
-  for (var i = 0; i < asteroids.length; i++){
-    var cur = asteroids[i];
-    cur.draw();
-    fill(0);
-  }
-};
-  var updateAsteroids = function(){
-      for (var i = 0; i < asteroids.length; i++){
-    var cur = asteroids[i];
-    cur.x += cur.vx;
-    cur.y += cur.vy;
-    var ra = cur.stage * 20;
-    // if (cur.x < -ra){
-    //   cur.x = width + ra;
-    // }
-    // if (cur.x > width + ra){
-    //   cur.x = -ra;
-    // }
-    // if (cur.y < -ra){
-    //   cur.y = height + ra;
-    // }
-    // if (cur.y > height + ra){
-    //   cur.y = -ra;
-    // }
-  }
-};
+
   var drawBullets = function(bulletList){
       for (var i = 0; i < bulletList.length; i++){
         noStroke();
@@ -228,6 +224,17 @@ var drawAsteroids = function(){
         ellipse(bulletList[i].x, bulletList[i].y, b.r*2, b.r*2);
     }
   };
+
+  var drawLocalBullets = function(bulletList){
+      for (var i = 0; i < bulletList.length; i++){
+        noStroke();
+        var b = bulletList[i];
+        fill(b.fillColor);
+        stroke(0, 0, 0);
+        ellipse(bulletList[i].x - p.loc.x + width/2, bulletList[i].y - p.loc.y + height/2, b.r*2, b.r*2);
+    }
+  };
+
   var handleCollisions = function(bulletList){
       for (var i = 0; i < bulletList.length; i++){
         noStroke();
@@ -289,16 +296,26 @@ var drawAsteroids = function(){
   };
   init();
 
+var xSize = width / 4;
+var ySize = height / 4;
 void draw () {
   frameRate(30);
-  background(255);
+  background(0);
+  /*DRAW BACKGROUND; BEGIN*/
+  for (let x = -(p.loc.x % xSize); x < width; x += xSize){
+    stroke(255);
+    line(x, 0, x, height);
+  }
+  for (let y = -(p.loc.y % ySize); y < height; y += ySize){
+    stroke(255);
+    line(0, y, width, y);
+  }
+  /*DRAW BACKGROUND; END*/
   p.update();
-  drawPlayer(p);
-  p.checkEdges();
+  drawLocalPlayer(p);
+  //p.checkEdges();
   p.userInput();
-  drawAsteroids();
-  updateAsteroids();
-  drawBullets(bullets);
+  drawLocalBullets(bullets);
   handleCollisions(bullets);
   drawBullets(enemyBullets);
   handleCollisions(enemyBullets);
@@ -311,8 +328,8 @@ void draw () {
   isHit(enemyBullets);
   textAlign(CENTER, CENTER);
   fill(0);
-  text("Your score: " + p.gameScore, width/2, 50);
-  text("Bullets taken: " + p.bulletsTaken, width/2, 80);
+  text("Your score: " + p.gameScore, width/2 - p.loc.x, 50 - p.loc.y);
+  text("Bullets taken: " + p.bulletsTaken, width/2 - p.loc.x, 80 - p.loc.y);
 };
 
 function getRandomColor() {
