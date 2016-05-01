@@ -263,7 +263,7 @@ void keyReleased (){
         var b = bulletList[i];
         fill(b.fillColor);
         stroke(0, 0, 0);
-        ellipse(bulletList[i].x, bulletList[i].y, b.r*2, b.r*2);
+        ellipse(bulletList[i].x - p.loc.x + width/2, bulletList[i].y - p.loc.y + height/2, b.r*2, b.r*2);
     }
   };
 
