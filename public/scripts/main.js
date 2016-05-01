@@ -24,6 +24,9 @@ var keyIsPressed = false;
 var f = createFont("monospace", 32);
 var localBulletID = 0, frameCount = 0;
 var starField = [];
+var showMap = true;
+var GAME_X = 6000;
+var GAME_Y = 6000;
 function Star(x, y, d){
   this.x = x;
   this.y = y;
@@ -166,16 +169,16 @@ var Player = function(){
 
     this.checkEdges = function(){
         var l = this.loc;
-        if (l.x < -this.r){
-            l.x = width + this.r;
-        }else if (l.x > width + this.r){
-            l.x = -this.r;
+        if (l.x < -GAME_X){
+            l.x = GAME_X;
+        }else if (l.x > GAME_X){
+            l.x = -GAME_X;
         }
-        if (l.y < -this.r){
-            l.y = height + this.r;
+        if (l.y < -GAME_Y){
+            l.y = GAME_Y;
         }
-        if (l.y > height + this.r){
-            l.y = -this.r;
+        if (l.y > GAME_Y){
+            l.y = -GAME_Y;
         }
     };
 
@@ -250,6 +253,8 @@ void keyReleased (){
         };
         bullets.push(bulObj);
         socket.emit("fireBullet", bulObj);
+    }else if (keyCode === 77){//letter "m"
+      showMap = !showMap;
     }
 };
 
@@ -275,7 +280,7 @@ void keyReleased (){
   var handleCollisions = function(bulletList){
       for (var i = 0; i < bulletList.length; i++){
         noStroke();
-          var b = bulletList[i];
+        var b = bulletList[i];
         b.x += b.vx;
         b.y += b.vy;
         // if (b.x < -b.r){
@@ -332,6 +337,28 @@ void keyReleased (){
       asteroids = [];
   };
   init();
+  var mapXSize = 300;
+  var mapYSize = 300;
+  var xScale = (mapXSize / 2) / GAME_X;
+  var yScale = (mapYSize / 2) / GAME_Y;
+  function drawminiMap(){
+    fill(255, 255, 255, 255);
+    noStroke();
+    rect(width - mapXSize, height - mapYSize, mapXSize, mapYSize);
+    pushMatrix();
+    translate(width - mapXSize/2, height - mapYSize/2);
+    rectMode(RADIUS);
+    for (let n = 0; n < remotePlayers.length; n++){
+      var location = remotePlayers[n].player.loc;
+      fill(255, 0, 0);
+      rect(location.x * xScale, location.y * yScale, 1.5, 1.5);
+      //rect(0, 0, 5, 5);
+    }
+    fill(0, 255, 0);
+    rect(p.loc.x * xScale, p.loc.y * yScale, 1.5, 1.5);
+    popMatrix();
+    rectMode(CORNER);
+  }
 
 var xSize = width / 4;
 var ySize = height / 4;
@@ -339,20 +366,12 @@ void draw () {
   frameCount++;
   frameRate(30);
   background(0);
+  fill(0, 255, 0);
   /*DRAW BACKGROUND; BEGIN*/
-  /*for (let x = -(p.loc.x % xSize); x < width; x += xSize){
-    stroke(255);
-    line(x, 0, x, height);
-  }
-  for (let y = -(p.loc.y % ySize); y < height; y += ySize){
-    stroke(255);
-    line(0, y, width, y);
-  }*/
   drawStars();
   /*DRAW BACKGROUND; END*/
   p.update();
-  drawLocalPlayer(p);
-  //p.checkEdges();
+  p.checkEdges();
   p.userInput();
   drawLocalBullets(bullets);
   handleCollisions(bullets);
@@ -364,11 +383,15 @@ void draw () {
     textAlign(LEFT, CENTER);
     text("Enemy score " + remotePlayers[n].player.gameScore + "; bullets taken: " + remotePlayers[n].player.bulletsTaken, 20, (n*30) + 40);
   }
+  drawLocalPlayer(p);
   isHit(enemyBullets);
   textAlign(CENTER, CENTER);
-  fill(0);
-  text("Your score: " + p.gameScore, width/2 - p.loc.x, 50 - p.loc.y);
-  text("Bullets taken: " + p.bulletsTaken, width/2 - p.loc.x, 80 - p.loc.y);
+  fill(255);
+  text("Your score: " + p.gameScore, width/2, 50);
+  text("Bullets taken: " + p.bulletsTaken, width/2,80);
+  if (showMap){
+    drawminiMap();
+  }
 };
 
 function getRandomColor() {
