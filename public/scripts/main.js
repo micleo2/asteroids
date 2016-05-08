@@ -1,4 +1,6 @@
 var socket = io();
+var width = document.body.clientWidth;
+var height = document.body.clientHeight;
 /*CHAT APP CODE; BEGIN*/
 $('form').submit(function(){
   socket.emit('chat message', $('#m').val());
@@ -9,9 +11,20 @@ socket.on('chat message', function(msg){
   $('#messages').prepend($('<li>').text(msg));
 });
 /*CHAT APP CODE; END*/
-
-var width = document.body.clientWidth;
-var height = document.body.clientHeight;
+/*PHYSICSJS STUFF; BEGIN*/
+var world = Physics();
+var angularSpeedClamp = 0.01;
+var phy = Physics.body('convex-polygon', {
+  x: width/2,
+  y: height/2,
+  vertices: [
+    {x: 40, y: 0},
+    {x: 0, y: 15},
+    {x: 0, y: -15},
+  ]
+});
+world.add(phy);
+/*PHYSICSJS STUFF; END*/
 void setup(){
   size(width , height);
 }
@@ -283,34 +296,10 @@ void keyReleased (){
         var b = bulletList[i];
         b.x += b.vx;
         b.y += b.vy;
-        // if (b.x < -b.r){
-        //     b.x = width + b.r;
-        // }
-        // if (b.x > width + b.r){
-        //     b.x = -b.r;
-        // }
-        // if (b.y < -b.r){
-        //     b.y = height + b.r;
-        // }
-        // if (b.y > height + b.r){
-        //     b.y = -b.r;
-        // }
           b.life--;
           if (b.life < 0){
               bulletList.splice(i, 1);
           }
-          // for (var n = 0; n < asteroids.length; n++){
-          //     var a = asteroids[n];
-          //     var ra = a.stage * 20;
-          //     if (b.x > a.x-ra && b.x < a.x + ra && b.y > a.y - ra && b.y < a.y + ra){
-          //         asteroids.push(new Asteroid(a.x, a.y, random(-5, 5), random(-5, 5), a.stage-1));
-          //         a.vx = random(-5, 5);
-          //         a.vy = random(-5, 5);
-          //         a.stage--;
-          //         bullets.splice(i, 1);
-          //     }
-          //
-          // }
     }
   };
 
@@ -362,37 +351,64 @@ void keyReleased (){
 
 var xSize = width / 4;
 var ySize = height / 4;
-void draw () {
-  frameCount++;
-  frameRate(30);
+function mainDraw () {
+  // frameCount++;
+  // frameRate(30);
+  // background(0);
+  // fill(0, 255, 0);
+  // /*DRAW BACKGROUND; BEGIN*/
+  // drawStars();
+  // /*DRAW BACKGROUND; END*/
+  // p.update();
+  // p.checkEdges();
+  // p.userInput();
+  // drawLocalBullets(bullets);
+  // handleCollisions(bullets);
+  // drawBullets(enemyBullets);
+  // handleCollisions(enemyBullets);
+  // for (let n = 0; n < remotePlayers.length; n++){
+  //   drawPlayer(remotePlayers[n].player);
+  //   fill(remotePlayers[n].player.fillColor);
+  //   textAlign(LEFT, CENTER);
+  //   text("Enemy score " + remotePlayers[n].player.gameScore + "; bullets taken: " + remotePlayers[n].player.bulletsTaken, 20, (n*30) + 40);
+  // }
+  // drawLocalPlayer(p);
+  // isHit(enemyBullets);
+  // textAlign(CENTER, CENTER);
+  // fill(255);
+  // text("Your score: " + p.gameScore, width/2, 50);
+  // text("Bullets taken: " + p.bulletsTaken, width/2,80);
+  // if (showMap){
+  //   drawminiMap();
+  // }
   background(0);
-  fill(0, 255, 0);
-  /*DRAW BACKGROUND; BEGIN*/
-  drawStars();
-  /*DRAW BACKGROUND; END*/
-  p.update();
-  p.checkEdges();
-  p.userInput();
-  drawLocalBullets(bullets);
-  handleCollisions(bullets);
-  drawBullets(enemyBullets);
-  handleCollisions(enemyBullets);
-  for (let n = 0; n < remotePlayers.length; n++){
-    drawPlayer(remotePlayers[n].player);
-    fill(remotePlayers[n].player.fillColor);
-    textAlign(LEFT, CENTER);
-    text("Enemy score " + remotePlayers[n].player.gameScore + "; bullets taken: " + remotePlayers[n].player.bulletsTaken, 20, (n*30) + 40);
-  }
-  drawLocalPlayer(p);
-  isHit(enemyBullets);
-  textAlign(CENTER, CENTER);
-  fill(255);
-  text("Your score: " + p.gameScore, width/2, 50);
-  text("Bullets taken: " + p.bulletsTaken, width/2,80);
-  if (showMap){
-    drawminiMap();
-  }
+  ellipse(phy.state.x, phy.state.y, 5, 5);
 };
+console.log("MADE IT");
+Physics.util.ticker.subscribe(function(time,dt){
+  world.step(time);
+  console.log("UPDATE");
+  mainDraw();
+  if (keys[UP]){//up
+    let angle = phy.state.angular.pos;// * (180/Math.PI);
+    let y = Math.sin(angle) * mag;
+    let x = Math.cos(angle) * mag;
+    phy.state.acc.set(x, y);
+  }
+  if (keys[LEFT]){
+    phy.state.angular.vel += -0.0003;
+  }else if (keys[RIGHT]){
+    phy.state.angular.vel += 0.0003;
+  }else{
+    phy.state.angular.vel *= 0.9;
+  }
+
+  if (phy.state.angular.vel < -angularSpeedClamp){
+    phy.state.angular.vel = -angularSpeedClamp;
+  }else if (phy.state.angular.vel > angularSpeedClamp){
+      phy.state.angular.vel = angularSpeedClamp
+  }
+});
 
 function getRandomColor() {
     return color(getRandomInt(0, 255), getRandomInt(0, 255), getRandomInt(0, 255));
