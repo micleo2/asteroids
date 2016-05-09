@@ -14,16 +14,12 @@ socket.on('chat message', function(msg){
 /*PHYSICSJS STUFF; BEGIN*/
 var world = Physics();
 var angularSpeedClamp = 0.01;
-var phy = Physics.body('convex-polygon', {
-  x: width/2,
-  y: height/2,
-  vertices: [
-    {x: 40, y: 0},
-    {x: 0, y: 15},
-    {x: 0, y: -15},
-  ]
-});
-world.add(phy);
+world.add( Physics.behavior('body-collision-detection') );
+world.add( Physics.behavior('sweep-prune') );
+world.add(Physics.behavior("edge-collision-detection", {
+  aabb: Physics.aabb(0, 0, width, height),
+  restitution: 0
+}));
 /*PHYSICSJS STUFF; END*/
 void setup(){
   size(width , height);
@@ -94,44 +90,49 @@ var limit = function(v, lim){
 };
 
 function drawPlayer(plyr){
+  let s = plyr.state;
   stroke(0, 0, 0);
   strokeWeight(0);
   fill(plyr.fillColor);
   pushMatrix();
-  translate(plyr.loc.x - p.loc.x + width/2, plyr.loc.y - p.loc.y + height/2);
+  translate(s.pos._[0], s.pos._[1]);
   var sizee = 10;
   var yOff = 21;
-  rotate(plyr.rot);
-  triangle(0, -plyr.r+yOff, sizee, -sizee+yOff, -sizee, -sizee+yOff);
-
+  rotate(plyr.state.angular.pos);
+  triangle(40, 0, 0, 15, 0, -15);
+  // {x: 40, y: 0},
+  // {x: 0, y: 15},
+  // {x: 0, y: -15},
   if (plyr.engineOn){
       var yoff = 4;
       if (random() > 0.25){
         fill(225, 69, 0);
-          noStroke();
-            triangle(0, plyr.r/2+yoff, 5, 10+yoff, -5, 10+yoff);
+        noStroke();
+        triangle(-5, 7, -5, -7, -15, 0);
       }
   }
   popMatrix();
 }
 
 function drawLocalPlayer(plyr){
+  let s = plyr.body.state;
   stroke(0, 0, 0);
   strokeWeight(0);
   fill(plyr.fillColor);
   pushMatrix();
-  translate(width/2, height/2);
+  translate(s.pos.get(0), s.pos.get(1));
   var sizee = 10;
   var yOff = 21;
-  rotate(plyr.rot);
-  triangle(0, -plyr.r+yOff, sizee, -sizee+yOff, -sizee, -sizee+yOff);
+  rotate(s.angular.pos);
+  // triangle(0, -plyr.r+yOff, sizee, -sizee+yOff, -sizee, -sizee+yOff);
+  triangle(40, 0, 0, 15, 0, -15);
 
   if (plyr.engineOn){
       var yoff = 4;
       if (random() > 0.25){
         fill(225, 69, 0);
-          noStroke();
-            triangle(0, plyr.r/2+yoff, 5, 10+yoff, -5, 10+yoff);
+        noStroke();
+        triangle(-5, 7, -5, -7, -15, 0);
       }
   }
   popMatrix();
@@ -139,13 +140,16 @@ function drawLocalPlayer(plyr){
 
 var Player = function(){
 
-    this.loc = new PVector(width / 2, height / 2);
-    this.velocity = new PVector();
-    this.acceleration = new PVector();
-
-    this.rot = 0;
-    this.rotA = 0;
-    this.rotSpeed = 0.01;
+    this.body = Physics.body('convex-polygon', {
+      x: width/2,
+      y: height/2,
+      vertices: [
+        {x: 40, y: 0},
+        {x: 0, y: 15},
+        {x: 0, y: -15},
+      ]
+    });
+    console.log(this.body);
     this.r = 44;
     this.fillColor = getRandomColor();
     this.engineOn = false;
@@ -154,30 +158,14 @@ var Player = function(){
     this.bulletsTaken = 0;
 
     this.update = function(){
-        this.rot += this.rotA;
-
-        if (keys[UP]){
-            this.velocity.add(this.acceleration);
-            this.engineOn = true;
-        }else{
-          this.engineOn = false;
-        }
-        var rotLim = 0.2;
-        if (this.rotA > rotLim){
-            this.rotA = rotLim;
-        }
-        else if (this.rotA < -rotLim){
-            this.rotA = -rotLim;
-        }
-
-        if (!(keyIsPressed && keyCode === LEFT) && !(keyIsPressed && keyCode === RIGHT)){
-            this.rotA *= 0.9;
-        }
-
-        limit(this.velocity, 5);
-        this.loc.add(this.velocity);
-        this.acceleration.mult(0);
-        socket.emit("playerUpdate", this);
+      let phy = this.body;
+      socket.emit("playerUpdate", {
+        state: phy.state,
+        fillColor: this.fillColor,
+        engineOn: this.engineOn,
+        gameScore: this.gameScore,
+        bulletsTaken: this.bulletsTaken
+      });
     };
 
     this.checkEdges = function(){
@@ -196,23 +184,29 @@ var Player = function(){
     };
 
     this.userInput = function(){
-        var s = this.rotSpeed;
+      let phy = this.body;
+      if (keys[UP]){//up
+        let angle = phy.state.angular.pos;// * (180/Math.PI);
+        let y = Math.sin(angle) * mag;
+        let x = Math.cos(angle) * mag;
+        phy.state.acc.set(x, y);
+        this.engineOn = true;
+      }else{
+        this.engineOn = false;
+      }
+      if (keys[LEFT]){
+        phy.state.angular.vel += -0.0003;
+      }else if (keys[RIGHT]){
+        phy.state.angular.vel += 0.0003;
+      }else{
+        phy.state.angular.vel *= 0.9;
+      }
 
-        if (keys[UP]){
-            var copy = new PVector(cos(this.rot - toRadians(90)), sin(this.rot - toRadians(90)));
-
-            copy.normalize();
-            copy.mult(1);
-
-            this.acceleration.add(copy);
-        }
-
-        if (keys[LEFT]){
-            this.rotA -= s;
-        }
-        if (keys[RIGHT]){
-            this.rotA += s;
-        }
+      if (phy.state.angular.vel < -angularSpeedClamp){
+        phy.state.angular.vel = -angularSpeedClamp;
+      }else if (phy.state.angular.vel > angularSpeedClamp){
+          phy.state.angular.vel = angularSpeedClamp
+      }
 
     };
 };
@@ -233,6 +227,7 @@ var Asteroid = function(x, y, vx, vy, s){
 };
 
 var p = new Player();
+world.add(p.body);
 var bullets = [];
 
 void keyPressed (){
@@ -351,28 +346,31 @@ void keyReleased (){
 
 var xSize = width / 4;
 var ySize = height / 4;
+void draw(){
+  noLoop();
+}
 function mainDraw () {
   // frameCount++;
-  // frameRate(30);
-  // background(0);
+  frameRate(30);
+  background(255);
   // fill(0, 255, 0);
   // /*DRAW BACKGROUND; BEGIN*/
   // drawStars();
   // /*DRAW BACKGROUND; END*/
-  // p.update();
+  p.update();
   // p.checkEdges();
-  // p.userInput();
+  p.userInput();
   // drawLocalBullets(bullets);
   // handleCollisions(bullets);
   // drawBullets(enemyBullets);
   // handleCollisions(enemyBullets);
-  // for (let n = 0; n < remotePlayers.length; n++){
-  //   drawPlayer(remotePlayers[n].player);
-  //   fill(remotePlayers[n].player.fillColor);
-  //   textAlign(LEFT, CENTER);
-  //   text("Enemy score " + remotePlayers[n].player.gameScore + "; bullets taken: " + remotePlayers[n].player.bulletsTaken, 20, (n*30) + 40);
-  // }
-  // drawLocalPlayer(p);
+  for (let n = 0; n < remotePlayers.length; n++){
+    drawPlayer(remotePlayers[n].player);
+    fill(remotePlayers[n].player.fillColor);
+    textAlign(LEFT, CENTER);
+    text("Enemy score " + remotePlayers[n].player.gameScore + "; bullets taken: " + remotePlayers[n].player.bulletsTaken, 20, (n*30) + 40);
+  }
+  drawLocalPlayer(p);
   // isHit(enemyBullets);
   // textAlign(CENTER, CENTER);
   // fill(255);
@@ -381,33 +379,11 @@ function mainDraw () {
   // if (showMap){
   //   drawminiMap();
   // }
-  background(0);
-  ellipse(phy.state.x, phy.state.y, 5, 5);
 };
-console.log("MADE IT");
+var mag = 0.001;
 Physics.util.ticker.subscribe(function(time,dt){
   world.step(time);
-  console.log("UPDATE");
   mainDraw();
-  if (keys[UP]){//up
-    let angle = phy.state.angular.pos;// * (180/Math.PI);
-    let y = Math.sin(angle) * mag;
-    let x = Math.cos(angle) * mag;
-    phy.state.acc.set(x, y);
-  }
-  if (keys[LEFT]){
-    phy.state.angular.vel += -0.0003;
-  }else if (keys[RIGHT]){
-    phy.state.angular.vel += 0.0003;
-  }else{
-    phy.state.angular.vel *= 0.9;
-  }
-
-  if (phy.state.angular.vel < -angularSpeedClamp){
-    phy.state.angular.vel = -angularSpeedClamp;
-  }else if (phy.state.angular.vel > angularSpeedClamp){
-      phy.state.angular.vel = angularSpeedClamp
-  }
 });
 
 function getRandomColor() {
@@ -419,14 +395,31 @@ function getRandomColor() {
   }
 
   socket.on("playerUpdate", function (msgObj) {
-    for (let n = 0; n < remotePlayers.length; n++){
+    let rS = msgObj.player.state;
+    //rS.pos._[0]
+    let body = Physics.body('convex-polygon', {
+      x: 0,
+      y: 0,
+      vertices: [
+        {x: 40, y: 0},
+        {x: 0, y: 15},
+        {x: 0, y: -15},
+      ]
+    });
+    body.state.pos.set(rS.pos._[0], rS.pos._[1]);
+    body.state.vel.set(rS.vel._[0], rS.vel._[1]);
+    body.state.angular = rS.angular;
 
+    msgObj.body = body;
+    for (let n = 0; n < remotePlayers.length; n++){
       if (msgObj.id === remotePlayers[n].id){
         remotePlayers[n] = msgObj;
         return;
       }
     }
     remotePlayers.push(msgObj);
+    world.add(msgObj.body);
+    console.log(world);
   })
 
   socket.on("fireBullet", function (bulObj) {
@@ -445,10 +438,8 @@ function getRandomColor() {
   });
 
   socket.on("playerLeft", function (playerID) {
-    console.log("SEARCHING FOR PLAYER...");
     for (let n = 0; n < remotePlayers.length; n++){
       if (remotePlayers[n].id === playerID.id){
-        console.log("REMOVING PLAYER...");
         remotePlayers.splice(n, 1);
       }
     }
@@ -457,3 +448,4 @@ function getRandomColor() {
   function toRadians (angle) {
     return angle * (Math.PI / 180);
   }
+  Physics.util.ticker.start();
