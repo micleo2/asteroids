@@ -6,7 +6,7 @@ var socketPool = {};
 var port = 3000;
 
 app.use(express.static(__dirname + '/public'));
-app.use(express.favicon(__dirname + '/public/images/favicon.ico'));
+// app.use(express.favicon(__dirname + '/public/images/favicon.ico'));
 
 io.on('connection', function(socket){
   socketPool[socket.id] = socket;
