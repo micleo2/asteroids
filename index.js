@@ -31,6 +31,11 @@ io.on('connection', function(socket){
   socket.on("chat message", function (content) {
     io.emit('chat message', content);
   });
+
+  socket.on("rewardPlayer", function(id, name){
+    console.log("Notifying " + id + " of kill...");
+    socketPool[id].emit("killedPlayer", name);
+  });
 });
 if (process.env.IP){
   http.listen(process.env.PORT || port, process.env.IP, function(){

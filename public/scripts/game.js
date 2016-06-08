@@ -1,15 +1,20 @@
-var socket = io();
-/*CHAT APP CODE; BEGIN*/
+var socket;
+var isOnline = false;
+
 $('form').submit(function(){
   socket.emit('chat message', $('#m').val());
   $('#m').val('');
   return false;
 });
-socket.on('chat message', function(msg){
-  $('#messages').prepend($('<li>').text(msg));
+$('#myModal').show("modal");
+$("#ready").click(function(){
+  startGame();
+  p.name = $("#nickname").val()
+  $('#myModal').hide("modal");
 });
-/*CHAT APP CODE; END*/
 
+var HEART = loadImage("/../images/heart2.png");
+HEART.resize(10, 20);
 var width = document.body.clientWidth;
 var height = document.body.clientHeight;
 void setup(){
@@ -24,9 +29,12 @@ var keyIsPressed = false;
 var f = createFont("monospace", 32);
 var localBulletID = 0, frameCount = 0;
 var starField = [];
+var lifeBonusAnimationTimer = 0;
+var currentKill = "";
 var showMap = true;
 var GAME_X = 6000;
 var GAME_Y = 6000;
+var MAX_LIVES = 20;
 function Star(x, y, d){
   this.x = x;
   this.y = y;
@@ -83,12 +91,12 @@ var limit = function(v, lim){
 function drawPlayer(plyr){
   stroke(0, 0, 0);
   strokeWeight(0);
-  fill(plyr.fillColor);
   pushMatrix();
   translate(plyr.loc.x - p.loc.x + width/2, plyr.loc.y - p.loc.y + height/2);
   var sizee = 10;
   var yOff = 21;
   rotate(plyr.rot);
+  fill(plyr.fillColor);
   triangle(0, -plyr.r+yOff, sizee, -sizee+yOff, -sizee, -sizee+yOff);
 
   if (plyr.engineOn){
@@ -96,9 +104,13 @@ function drawPlayer(plyr){
       if (random() > 0.25){
         fill(225, 69, 0);
           noStroke();
-            triangle(0, plyr.r/2+yoff, 5, 10+yoff, -5, 10+yoff);
+          triangle(0, plyr.r/2+yoff, 5, 10+yoff, -5, 10+yoff);
       }
   }
+  rotate(-plyr.rot);
+  fill(200, 200, 200);
+  textSize(8);
+  text(plyr.name, 0, yOff);
   popMatrix();
 }
 
@@ -139,12 +151,15 @@ var Player = function(){
 
     this.gameScore = 0;
     this.bulletsTaken = 0;
+    this.lives = MAX_LIVES;
 
     this.update = function(){
         this.rot += this.rotA;
 
         if (keys[UP]){
             this.velocity.add(this.acceleration);
+            this.velocity.x *= 0.9;
+            this.velocity.y *= 0.9;
             this.engineOn = true;
         }else{
           this.engineOn = false;
@@ -219,7 +234,7 @@ var Asteroid = function(x, y, vx, vy, s){
   };
 };
 
-var p = new Player();
+var p;
 var bullets = [];
 
 void keyPressed (){
@@ -244,8 +259,8 @@ void keyReleased (){
         var bulObj = {
             x: p.loc.x + sin(p.rot)*18,
             y: p.loc.y- (cos(p.rot)*24),
-            vx: vvx,
-            vy: vvy,
+            vx: vvx + p.velocity.x,
+            vy: vvy + p.velocity.y,
             r: 3,
             life: 100,
             fillColor: p.fillColor,
@@ -262,7 +277,8 @@ void keyReleased (){
       for (var i = 0; i < bulletList.length; i++){
         var b = bulletList[i];
         fill(b.fillColor);
-        stroke(0, 0, 0);
+        stroke(255);
+        strokeWeight(0.3);
         ellipse(bulletList[i].x - p.loc.x + width/2, bulletList[i].y - p.loc.y + height/2, b.r*2, b.r*2);
     }
   };
@@ -283,34 +299,10 @@ void keyReleased (){
         var b = bulletList[i];
         b.x += b.vx;
         b.y += b.vy;
-        // if (b.x < -b.r){
-        //     b.x = width + b.r;
-        // }
-        // if (b.x > width + b.r){
-        //     b.x = -b.r;
-        // }
-        // if (b.y < -b.r){
-        //     b.y = height + b.r;
-        // }
-        // if (b.y > height + b.r){
-        //     b.y = -b.r;
-        // }
           b.life--;
           if (b.life < 0){
               bulletList.splice(i, 1);
           }
-          // for (var n = 0; n < asteroids.length; n++){
-          //     var a = asteroids[n];
-          //     var ra = a.stage * 20;
-          //     if (b.x > a.x-ra && b.x < a.x + ra && b.y > a.y - ra && b.y < a.y + ra){
-          //         asteroids.push(new Asteroid(a.x, a.y, random(-5, 5), random(-5, 5), a.stage-1));
-          //         a.vx = random(-5, 5);
-          //         a.vy = random(-5, 5);
-          //         a.stage--;
-          //         bullets.splice(i, 1);
-          //     }
-          //
-          // }
     }
   };
 
@@ -321,6 +313,11 @@ void keyReleased (){
         socket.emit("bulletHit", curB);
         bulletList.splice(n, 1);
         p.bulletsTaken++;
+        p.lives--;
+        if (p.lives <= 0){
+          socket.emit("rewardPlayer", curB.id, p.name)
+          endGame();
+        }
       }
     }
   }
@@ -363,34 +360,48 @@ void keyReleased (){
 var xSize = width / 4;
 var ySize = height / 4;
 void draw () {
-  frameCount++;
-  frameRate(30);
-  background(0);
-  fill(0, 255, 0);
-  /*DRAW BACKGROUND; BEGIN*/
-  drawStars();
-  /*DRAW BACKGROUND; END*/
-  p.update();
-  p.checkEdges();
-  p.userInput();
-  drawLocalBullets(bullets);
-  handleCollisions(bullets);
-  drawBullets(enemyBullets);
-  handleCollisions(enemyBullets);
-  for (let n = 0; n < remotePlayers.length; n++){
-    drawPlayer(remotePlayers[n].player);
-    fill(remotePlayers[n].player.fillColor);
-    textAlign(LEFT, CENTER);
-    text("Enemy score " + remotePlayers[n].player.gameScore + "; bullets taken: " + remotePlayers[n].player.bulletsTaken, 20, (n*30) + 40);
-  }
-  drawLocalPlayer(p);
-  isHit(enemyBullets);
-  textAlign(CENTER, CENTER);
-  fill(255);
-  text("Your score: " + p.gameScore, width/2, 50);
-  text("Bullets taken: " + p.bulletsTaken, width/2,80);
-  if (showMap){
-    drawminiMap();
+  if (isOnline){
+    frameCount++;
+    frameRate(30);
+    background(0);
+    fill(0, 255, 0);
+    /*DRAW BACKGROUND; BEGIN*/
+    drawStars();
+    /*DRAW BACKGROUND; END*/
+    p.update();
+    p.checkEdges();
+    p.userInput();
+    drawLocalBullets(bullets);
+    handleCollisions(bullets);
+    drawBullets(enemyBullets);
+    handleCollisions(enemyBullets);
+    for (let n = 0; n < remotePlayers.length; n++){
+      drawPlayer(remotePlayers[n].player);
+      fill(remotePlayers[n].player.fillColor);
+      textAlign(LEFT, CENTER);
+      text("#" + (n+1) + "\t" + remotePlayers[n].player.gameScore + "\t" + remotePlayers[n].player.name, 20, (n*30) + 40);
+    }
+    drawLocalPlayer(p);
+    textAlign(CENTER, CENTER);
+    fill(255);
+    text("Your score: " + p.gameScore, width/2, 50);
+    text("Bullets taken: " + p.bulletsTaken, width/2,80);
+    if (showMap){
+      drawminiMap();
+    }
+    for (let l = 0; l < p.lives; l++){
+      image(HEART, 12 + (32*l), height - 40);
+    }
+    isHit(enemyBullets);
+    if (lifeBonusAnimationTimer > 0){
+      lifeBonusAnimationTimer--;
+      fill(lifeBonusAnimationTimer, 0, 0);
+      text("You erased " + currentKill + "!", width/2, height/2 - 100);
+    }
+  }else{
+    background(255);
+    fill(0);
+    text("Pending...", width/2, height/2);
   }
 };
 
@@ -402,11 +413,32 @@ function getRandomColor() {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
+  function toRadians (angle) {
+    return angle * (Math.PI / 180);
+  }
+
+function compare(a,b) {
+  if (a.player.gameScore < b.player.gameScore){
+    return 1;
+  }
+  else if (a.player.gameScore > b.player.gameScore){
+    return -1;
+  }
+  else{
+    return 0;
+  }
+}
+
+function startGame(){
+  socket = io();
+  isOnline = true;
+  p = new Player();
   socket.on("playerUpdate", function (msgObj) {
     for (let n = 0; n < remotePlayers.length; n++){
 
       if (msgObj.id === remotePlayers[n].id){
         remotePlayers[n] = msgObj;
+        remotePlayers.sort(compare);
         return;
       }
     }
@@ -415,29 +447,46 @@ function getRandomColor() {
 
   socket.on("fireBullet", function (bulObj) {
     enemyBullets.push(bulObj);
+    console.log(bulObj);
   });
 
   socket.on("bulletSuccess", function (bulObj) {
-    for (var n = 0; n < bullets.length; n++){
+    for (let n = 0; n < bullets.length; n++){
       if (bullets[n].bulletID === bulObj.bulletID){
         bullets.splice(n, 1);
         break;
       }
     }
     p.gameScore++;
-    document.getElementById("displayScore").innerHTML = p.gameScore;
   });
 
   socket.on("playerLeft", function (playerID) {
-    console.log("SEARCHING FOR PLAYER...");
     for (let n = 0; n < remotePlayers.length; n++){
       if (remotePlayers[n].id === playerID.id){
-        console.log("REMOVING PLAYER...");
         remotePlayers.splice(n, 1);
       }
     }
   });
 
-  function toRadians (angle) {
-    return angle * (Math.PI / 180);
-  }
+  socket.on("killedPlayer", function(name){
+    p.lives += 3;
+    if (p.lives > MAX_LIVES){
+      p.lives = MAX_LIVES;
+    }
+    lifeBonusAnimationTimer = 255;
+    currentKill = name;
+  });
+  socket.on('chat message', function(msg){
+    $('#messages').prepend($('<li>').text(msg));
+  });
+}
+
+function endGame(){
+  socket.close();
+  socket = null;
+  isOnline = false;
+  p = null;
+  $('#myModal').show("modal");
+  lifeBonusAnimationTimer = -1;
+  currentKill = "";
+}
