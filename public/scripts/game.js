@@ -9,7 +9,7 @@ $('form').submit(function(){
 $('#myModal').show("modal");
 $("#ready").click(function(){
   startGame();
-  p.name = $("#nickname").val()
+  p.name = $("#nickname").val().substring(0, 12);
   $('#myModal').hide("modal");
 });
 
@@ -87,7 +87,7 @@ var limit = function(v, lim){
         v.y = -lim;
     }
 };
-
+var lifeBarWidth = 50;
 function drawPlayer(plyr){
   stroke(0, 0, 0);
   strokeWeight(0);
@@ -108,9 +108,15 @@ function drawPlayer(plyr){
       }
   }
   rotate(-plyr.rot);
+  noStroke();
   fill(200, 200, 200);
   textSize(8);
   text(plyr.name, 0, yOff);
+  rectMode(CENTER);
+  fill(255);
+  rect(0, yOff + 11, lifeBarWidth, 10);
+  fill(0, 255, 0);
+  rect(0, yOff + 11, lifeBarWidth * (plyr.lives / MAX_LIVES), 10);
   popMatrix();
 }
 
@@ -317,6 +323,7 @@ void keyReleased (){
         if (p.lives <= 0){
           socket.emit("rewardPlayer", curB.id, p.name)
           endGame();
+          return;
         }
       }
     }
@@ -339,6 +346,7 @@ void keyReleased (){
   var xScale = (mapXSize / 2) / GAME_X;
   var yScale = (mapYSize / 2) / GAME_Y;
   function drawminiMap(){
+    rectMode(CORNER);
     fill(255, 255, 255, 255);
     noStroke();
     rect(width - mapXSize, height - mapYSize, mapXSize, mapYSize);
@@ -377,9 +385,11 @@ void draw () {
     handleCollisions(enemyBullets);
     for (let n = 0; n < remotePlayers.length; n++){
       drawPlayer(remotePlayers[n].player);
-      fill(remotePlayers[n].player.fillColor);
       textAlign(LEFT, CENTER);
-      text("#" + (n+1) + "\t" + remotePlayers[n].player.gameScore + "\t" + remotePlayers[n].player.name, 20, (n*30) + 40);
+      fill(255);
+      text("Rank\t\tScore   Name", 20, 20);
+      fill(remotePlayers[n].player.fillColor);
+      text("#" + (n+1) + "       " + remotePlayers[n].player.gameScore + "            " + remotePlayers[n].player.name, 20, (n*30) + 40);
     }
     drawLocalPlayer(p);
     textAlign(CENTER, CENTER);
