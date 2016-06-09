@@ -15,8 +15,8 @@ $("#ready").click(function(){
 
 var HEART = loadImage("/../images/heart2.png");
 HEART.resize(10, 20);
-var width = document.body.clientWidth;
-var height = document.body.clientHeight;
+var width = document.body.clientWidth * 0.95;
+var height = document.body.clientHeight * 0.95;
 void setup(){
   size(width , height);
 }
@@ -357,7 +357,6 @@ void keyReleased (){
       var location = remotePlayers[n].player.loc;
       fill(255, 0, 0);
       rect(location.x * xScale, location.y * yScale, 1.5, 1.5);
-      //rect(0, 0, 5, 5);
     }
     fill(0, 255, 0);
     rect(p.loc.x * xScale, p.loc.y * yScale, 1.5, 1.5);
@@ -392,9 +391,10 @@ void draw () {
       text("#" + (n+1) + "       " + remotePlayers[n].player.gameScore + "            " + remotePlayers[n].player.name, 20, (n*30) + 40);
     }
     drawLocalPlayer(p);
-    textAlign(CENTER, CENTER);
+    textAlign(CENTER);
     fill(255);
-    text("Your score: " + p.gameScore, width/2, 50);
+    text("Name: " + p.name, width/2,50);
+    text("Your score: " + p.gameScore, width/2, 65);
     text("Bullets taken: " + p.bulletsTaken, width/2,80);
     if (showMap){
       drawminiMap();
@@ -402,7 +402,11 @@ void draw () {
     for (let l = 0; l < p.lives; l++){
       image(HEART, 12 + (32*l), height - 40);
     }
+    textAlign(LEFT);
+    fill(255);
+    text(p.lives + "/" + MAX_LIVES + "lives left", 14, height - 60);
     isHit(enemyBullets);
+    textAlign(CENTER);
     if (lifeBonusAnimationTimer > 0){
       lifeBonusAnimationTimer--;
       fill(lifeBonusAnimationTimer, 0, 0);
@@ -496,6 +500,8 @@ function endGame(){
   socket = null;
   isOnline = false;
   p = null;
+  remotePlayers = [];
+  enemyBullets = [];
   $('#myModal').show("modal");
   lifeBonusAnimationTimer = -1;
   currentKill = "";
