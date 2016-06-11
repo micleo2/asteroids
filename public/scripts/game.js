@@ -162,7 +162,7 @@ var Player = function(){
     this.update = function(){
         this.rot += this.rotA;
 
-        if (keys[UP]){
+        if (keys[UP] || keys[87]){
             this.velocity.add(this.acceleration);
             this.velocity.x *= 0.9;
             this.velocity.y *= 0.9;
@@ -205,8 +205,8 @@ var Player = function(){
 
     this.userInput = function(){
         var s = this.rotSpeed;
-
-        if (keys[UP]){
+        //87 65 83 68 -- WASD
+        if (keys[UP] || keys[87]){
             var copy = new PVector(cos(this.rot - toRadians(90)), sin(this.rot - toRadians(90)));
 
             copy.normalize();
@@ -215,10 +215,10 @@ var Player = function(){
             this.acceleration.add(copy);
         }
 
-        if (keys[LEFT]){
+        if (keys[LEFT] || keys[65]){
             this.rotA -= s;
         }
-        if (keys[RIGHT]){
+        if (keys[RIGHT] || keys[68]){
             this.rotA += s;
         }
 
@@ -254,7 +254,7 @@ void keyPressed (){
 void keyReleased (){
   keyIsPressed = false;
     keys[keyCode] = false;
-    if (keyCode === 32 && bullets.length < 7){
+    if ((keyCode === 32 || keyCode === 83) && bullets.length < 7){
 
         var copy = new PVector(sin(p.rot), -cos(p.rot));
         copy.normalize();
