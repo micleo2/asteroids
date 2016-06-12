@@ -483,7 +483,7 @@ function startGame(){
   });
 
   socket.on("killedPlayer", function(name){
-    p.lives += 3;
+    p.lives += 5;
     if (p.lives > MAX_LIVES){
       p.lives = MAX_LIVES;
     }
