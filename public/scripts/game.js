@@ -1,8 +1,9 @@
 var socket;
 var isOnline = false;
+var p;
 
 $('form').submit(function(){
-  socket.emit('chat message', $('#m').val());
+  socket.emit('chat message', $('#m').val(), {color: p.fillColor, name: p.name});
   $('#m').val('');
   return false;
 });
@@ -240,7 +241,7 @@ var Asteroid = function(x, y, vx, vy, s){
   };
 };
 
-var p;
+
 var bullets = [];
 
 void keyPressed (){
@@ -490,8 +491,8 @@ function startGame(){
     lifeBonusAnimationTimer = 255;
     currentKill = name;
   });
-  socket.on('chat message', function(msg){
-    $('#messages').prepend($('<li>').text(msg));
+  socket.on('chat message', function(msg, info){
+    $('#messages').prepend($('<li>').text(msg).prepend("<b>" + info.name + ":</b>"));
   });
 }
 

@@ -28,8 +28,8 @@ io.on('connection', function(socket){
     delete socketPool[socket.id];
   });
 
-  socket.on("chat message", function (content) {
-    io.emit('chat message', content);
+  socket.on("chat message", function (content, info) {
+    io.emit('chat message', content, info);
   });
 
   socket.on("rewardPlayer", function(id, name){
